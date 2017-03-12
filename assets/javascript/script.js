@@ -12,36 +12,36 @@ $(document).ready(function () {
   var database = firebase.database();
   var trains = database.ref("trains");
 
-  trains.on("value", getData, errData);
+  trains.on("child_added", function (childSnapshot) {
+      var trainData = childSnapshot.val();
+    
+      var name = trainData.name;
+      var destination = trainData.destination;
+      var firstTrain = trainData.first_train;
+      var frequency = trainData.frequency;
 
-  function getData(data) {
-    console.log(data.val());
-    var schedules = data.val();
-    var keys = Object.keys(schedules);
-
-    for (var i = 0; i < keys.length; i++) {
-      var key = keys[i];
-      var name = schedules[key].name;
-      var destination = schedules[key].destination;
-      var frequency = schedules[key].frequency;
-      var firstTrain = schedules[key].first_train;
-
-      buildSchedule(name, destination, frequency);
-    }
-  }
+      buildSchedule(name, destination, firstTrain, frequency);
+      var currentTime = moment();
+      console.log(moment(firstTrain).isSameOrBefore(currentTime));
+      // console.log(moment(firstTrain, 'HH:mm').format('h:mm A'));
+      // console.log(moment(currentTime, 'HH:mm').format('h:mm A'));
+  }, errData);
 
   function errData(data) {
     console.log(data);
   }
 
-  function buildSchedule(name, destination, frequency) {
+  function buildSchedule(name, destination, firstTrain, frequency) {
     var newRow = $("<tr>");
     var mdlCellClass = "mdl-data-table__cell--non-numeric";
+    nextTrain = getNextTrain(firstTrain, frequency);
+
+    // var nextTrain = moment(firstTrain, 'HH:mm').format('h:mm A');
     var nameCell = $("<td>").addClass(mdlCellClass).html(name);
     var destCell = $("<td>").addClass(mdlCellClass).html(destination);
     var freqCell = $("<td>").addClass(mdlCellClass).html(frequency);
-    var nextCell = $("<td>").addClass(mdlCellClass).html("05:02 PM");
-    var awayCell = $("<td>").addClass(mdlCellClass).html("30");
+    var nextCell = $("<td>").addClass(mdlCellClass).html(nextTrain);
+    var awayCell = $("<td>").addClass(mdlCellClass).html(moment(nextTrain, 'h:mm A').fromNow());
 
     newRow
       .append(nameCell)
@@ -53,6 +53,13 @@ $(document).ready(function () {
     $("#schedule").append(newRow);
   }
 
+  function getNextTrain(train, interval) {
+    // while (moment(train).add(30, "minutes").isSameOrBefore(moment())) {
+
+    // }
+    return moment().add(interval,'minutes').format('hh:mm A')
+  }
+
   function resetFields() {
     $("#train-name-input").val("");
     $("#destination-input").val("");
@@ -61,7 +68,6 @@ $(document).ready(function () {
   }
 
   $("#submit").on("click", function () {
-    $("#schedule").empty();
     var trainName = $("#train-name-input").val().trim();
     var destination = $("#destination-input").val().trim();
     var first_train = $("#first-train-input").val().trim();
