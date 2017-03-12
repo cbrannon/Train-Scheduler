@@ -14,19 +14,12 @@ $(document).ready(function () {
 
   trains.on("child_added", function (childSnapshot) {
       var trainData = childSnapshot.val();
-    
       var name = trainData.name;
       var destination = trainData.destination;
       var firstTrain = trainData.first_train;
       var frequency = trainData.frequency;
-
       buildSchedule(name, destination, firstTrain, frequency);
-      var currentTime = moment();
-      console.log(moment(firstTrain).isSameOrBefore(currentTime));
-      // console.log(moment(firstTrain, 'HH:mm').format('h:mm A'));
-      // console.log(moment(currentTime, 'HH:mm').format('h:mm A'));
   }, errData);
-
   function errData(data) {
     console.log(data);
   }
@@ -34,9 +27,11 @@ $(document).ready(function () {
   function buildSchedule(name, destination, firstTrain, frequency) {
     var newRow = $("<tr>");
     var mdlCellClass = "mdl-data-table__cell--non-numeric";
-    nextTrain = getNextTrain(firstTrain, frequency);
 
-    // var nextTrain = moment(firstTrain, 'HH:mm').format('h:mm A');
+    // var nextTrain = getNextTrain(firstTrain, frequency);
+    var nextTrain = getNextTrain(firstTrain, frequency);
+    console.log(getNextTrain(firstTrain, frequency));
+
     var nameCell = $("<td>").addClass(mdlCellClass).html(name);
     var destCell = $("<td>").addClass(mdlCellClass).html(destination);
     var freqCell = $("<td>").addClass(mdlCellClass).html(frequency);
@@ -53,11 +48,27 @@ $(document).ready(function () {
     $("#schedule").append(newRow);
   }
 
-  function getNextTrain(train, interval) {
-    // while (moment(train).add(30, "minutes").isSameOrBefore(moment())) {
+// The first train of the day comes in at 3:00 AM.
+// The train runs every 17 minutes
+// The current time is 7:12 PM.
+// There have been no delays and will be no delays.
 
-    // }
-    return moment().add(interval,'minutes').format('hh:mm A')
+// currentTime - startTime = Total minutes between
+// totalMinutes % interval = minutes into next train
+// interval - minutes into gives us time of next train  
+
+  function getNextTrain(firstTrain, interval) {
+    var now = moment();
+    var hours = firstTrain.substr(0, 2);
+    var minutes = firstTrain.substr(3, 4);
+    var train = moment().startOf('day').hour(parseInt(hours)).minute(parseInt(minutes));
+    var duration = moment.duration(now.diff(train)).asMinutes();
+    var minutesUntil = duration % interval;
+    var nextTrain = interval - minutesUntil;
+    var newTrain = now.add(nextTrain, "minutes").format("HH:MM");
+    
+    // return train.format("HH:MM");
+    return moment(now).format("h:mm a");
   }
 
   function resetFields() {
@@ -73,7 +84,7 @@ $(document).ready(function () {
     var first_train = $("#first-train-input").val().trim();
     var frequency = $("#frequency-input").val().trim();
 
-    if (trainName != "" && destination != "" && first_train != "" && frequency != "") {
+    if (trainName != "" || destination != "" || first_train != "" || frequency != "") {
 
       var data = {
         name: trainName,
